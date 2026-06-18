@@ -1,0 +1,90 @@
+# Docker Compose stack for deploying SciNote with EasyPanel.
+# In EasyPanel, attach your domain to the `web` service on target port 13000.
+
+x-scinote-environment: &scinote-environment
+  - RAILS_ENV=production
+  - NODE_ENV=production
+  - PORT=${SCINOTE_WEB_PORT:-13000}
+  - RAILS_SERVE_STATIC_FILES=true
+  - RAILS_LOG_TO_STDOUT=true
+  - RAILS_LOG_LEVEL=${RAILS_LOG_LEVEL:-info}
+  - RAILS_FORCE_SSL=${RAILS_FORCE_SSL:-}
+  - DEFACE_ENABLED=${DEFACE_ENABLED:-true}
+  - ACTIVESTORAGE_SERVICE=${ACTIVESTORAGE_SERVICE:-local}
+  - ENABLE_USER_REGISTRATION=${ENABLE_USER_REGISTRATION:-true}
+  - NEW_TEAM_ON_SIGNUP=${NEW_TEAM_ON_SIGNUP:-true}
+  - DATABASE_URL=postgresql://${POSTGRES_USER:-scinote}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in EasyPanel environment}@db:${SCINOTE_POSTGRES_PORT:-15432}/${POSTGRES_DB:-scinote_production}
+  - SECRET_KEY_BASE=${SECRET_KEY_BASE:?Set SECRET_KEY_BASE in EasyPanel environment}
+  - WEB_SERVER_URL=${WEB_SERVER_URL:?Set WEB_SERVER_URL in EasyPanel environment}
+  - ADMIN_NAME=${ADMIN_NAME:-Admin}
+  - ADMIN_EMAIL=${ADMIN_EMAIL:?Set ADMIN_EMAIL in EasyPanel environment}
+  - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in EasyPanel environment}
+  - MAIL_FROM
+  - MAIL_REPLYTO
+  - SMTP_ADDRESS
+  - SMTP_PORT
+  - SMTP_DOMAIN
+  - SMTP_AUTH_METHOD
+  - SMTP_USERNAME
+  - SMTP_PASSWORD
+  - SMTP_OPENSSL_VERIFY_MODE
+
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-scinote_production}
+      POSTGRES_USER: ${POSTGRES_USER:-scinote}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in EasyPanel environment}
+      PGPORT: ${SCINOTE_POSTGRES_PORT:-15432}
+      PGDATA: /var/lib/postgresql/18/docker
+    command: ["postgres", "-c", "port=${SCINOTE_POSTGRES_PORT:-15432}"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p $${PGPORT:-15432} -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    image: scinote-easypanel:${SCINOTE_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: *scinote-environment
+    volumes:
+      - scinote_storage:/usr/src/app/storage
+    expose:
+      - "${SCINOTE_WEB_PORT:-13000}"
+    command: >
+      bash -lc "rm -f tmp/pids/server.pid &&
+      bundle exec rails db:prepare &&
+      bundle exec rails db:seed &&
+      bundle exec rails server -b 0.0.0.0 -p $${PORT:-13000}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:$${PORT:-13000}/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  jobs:
+    image: scinote-easypanel:${SCINOTE_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    environment: *scinote-environment
+    volumes:
+      - scinote_storage:/usr/src/app/storage
+    command: bash -lc "bundle exec rake jobs:work"
+
+volumes:
+  postgres_data:
+  scinote_storage:
