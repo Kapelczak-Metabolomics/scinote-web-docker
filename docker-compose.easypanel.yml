@@ -2,32 +2,32 @@
 # In EasyPanel, attach your domain to the `web` service on target port 3000.
 
 x-scinote-environment: &scinote-environment
-  RAILS_ENV: production
-  NODE_ENV: production
-  PORT: 3000
-  RAILS_SERVE_STATIC_FILES: "true"
-  RAILS_LOG_TO_STDOUT: "true"
-  RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
-  RAILS_FORCE_SSL: ${RAILS_FORCE_SSL:-}
-  DEFACE_ENABLED: ${DEFACE_ENABLED:-true}
-  ACTIVESTORAGE_SERVICE: ${ACTIVESTORAGE_SERVICE:-local}
-  ENABLE_USER_REGISTRATION: ${ENABLE_USER_REGISTRATION:-true}
-  NEW_TEAM_ON_SIGNUP: ${NEW_TEAM_ON_SIGNUP:-true}
-  DATABASE_URL: postgresql://${POSTGRES_USER:-scinote}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in EasyPanel environment}@db:5432/${POSTGRES_DB:-scinote_production}
-  SECRET_KEY_BASE: ${SECRET_KEY_BASE:?Set SECRET_KEY_BASE in EasyPanel environment}
-  WEB_SERVER_URL: ${WEB_SERVER_URL:?Set WEB_SERVER_URL in EasyPanel environment}
-  ADMIN_NAME: ${ADMIN_NAME:-Admin}
-  ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in EasyPanel environment}
-  ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in EasyPanel environment}
-  MAIL_FROM: ${MAIL_FROM:-}
-  MAIL_REPLYTO: ${MAIL_REPLYTO:-}
-  SMTP_ADDRESS: ${SMTP_ADDRESS:-}
-  SMTP_PORT: ${SMTP_PORT:-587}
-  SMTP_DOMAIN: ${SMTP_DOMAIN:-}
-  SMTP_AUTH_METHOD: ${SMTP_AUTH_METHOD:-plain}
-  SMTP_USERNAME: ${SMTP_USERNAME:-}
-  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-  SMTP_OPENSSL_VERIFY_MODE: ${SMTP_OPENSSL_VERIFY_MODE:-peer}
+  - RAILS_ENV=production
+  - NODE_ENV=production
+  - PORT=3000
+  - RAILS_SERVE_STATIC_FILES=true
+  - RAILS_LOG_TO_STDOUT=true
+  - RAILS_LOG_LEVEL=${RAILS_LOG_LEVEL:-info}
+  - RAILS_FORCE_SSL=${RAILS_FORCE_SSL:-}
+  - DEFACE_ENABLED=${DEFACE_ENABLED:-true}
+  - ACTIVESTORAGE_SERVICE=${ACTIVESTORAGE_SERVICE:-local}
+  - ENABLE_USER_REGISTRATION=${ENABLE_USER_REGISTRATION:-true}
+  - NEW_TEAM_ON_SIGNUP=${NEW_TEAM_ON_SIGNUP:-true}
+  - DATABASE_URL=postgresql://${POSTGRES_USER:-scinote}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in EasyPanel environment}@db:5432/${POSTGRES_DB:-scinote_production}
+  - SECRET_KEY_BASE=${SECRET_KEY_BASE:?Set SECRET_KEY_BASE in EasyPanel environment}
+  - WEB_SERVER_URL=${WEB_SERVER_URL:?Set WEB_SERVER_URL in EasyPanel environment}
+  - ADMIN_NAME=${ADMIN_NAME:-Admin}
+  - ADMIN_EMAIL=${ADMIN_EMAIL:?Set ADMIN_EMAIL in EasyPanel environment}
+  - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in EasyPanel environment}
+  - MAIL_FROM
+  - MAIL_REPLYTO
+  - SMTP_ADDRESS
+  - SMTP_PORT
+  - SMTP_DOMAIN
+  - SMTP_AUTH_METHOD
+  - SMTP_USERNAME
+  - SMTP_PASSWORD
+  - SMTP_OPENSSL_VERIFY_MODE
 
 services:
   db:
@@ -55,8 +55,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      <<: *scinote-environment
+    environment: *scinote-environment
     volumes:
       - scinote_storage:/usr/src/app/storage
     expose:
@@ -79,8 +78,7 @@ services:
     depends_on:
       web:
         condition: service_healthy
-    environment:
-      <<: *scinote-environment
+    environment: *scinote-environment
     volumes:
       - scinote_storage:/usr/src/app/storage
     command: bash -lc "bundle exec rake jobs:work"
