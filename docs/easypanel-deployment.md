@@ -5,9 +5,9 @@ This guide deploys SciNote with the EasyPanel Compose service using
 
 The stack contains:
 
-- `web`: Rails/Puma app, exposed internally on port `3000`
+- `web`: Rails/Puma app, exposed internally on port `13000`
 - `jobs`: delayed job worker for background jobs
-- `db`: private PostgreSQL database
+- `db`: private PostgreSQL database, listening internally on port `15432`
 - `postgres_data`: persistent database volume
 - `scinote_storage`: persistent Active Storage uploads volume
 
@@ -57,6 +57,8 @@ Optional variables:
 | --- | --- | --- |
 | `POSTGRES_DB` | `scinote_production` | Database name. |
 | `POSTGRES_USER` | `scinote` | Database user. |
+| `SCINOTE_WEB_PORT` | `13000` | Internal Rails/Puma port. Use this as the EasyPanel target/proxy port. |
+| `SCINOTE_POSTGRES_PORT` | `15432` | Internal PostgreSQL port. The database is not published publicly. |
 | `RAILS_LOG_LEVEL` | `info` | Rails log level. |
 | `RAILS_FORCE_SSL` | empty | Set to `true` only if you want Rails to enforce HTTPS behind EasyPanel. |
 | `ENABLE_USER_REGISTRATION` | `true` | Set to `false` to disable public signups. |
@@ -78,7 +80,7 @@ On first startup, the `web` service runs:
 ```bash
 rails db:prepare
 rails db:seed
-rails server -b 0.0.0.0 -p 3000
+rails server -b 0.0.0.0 -p 13000
 ```
 
 The seed task creates the initial admin user only when the database has no
@@ -92,10 +94,13 @@ tools.
 
 1. In EasyPanel, open the deployed Compose service.
 2. Add a domain for the `web` service.
-3. Set the target/proxy port to `3000`.
+3. Set the target/proxy port to `13000`, unless you changed
+   `SCINOTE_WEB_PORT`.
 4. Enable HTTPS in EasyPanel.
 
-Do not expose the `db` service publicly.
+Do not expose the `db` service publicly. The Compose stack does not publish
+host ports for either `web` or `db`; EasyPanel should proxy only the `web`
+service to your domain.
 
 ## 6. Log in
 
